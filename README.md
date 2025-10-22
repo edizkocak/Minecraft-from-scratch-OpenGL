@@ -14,10 +14,10 @@ The game supports **up to 4 players** in a multiplayer server.
 
 ## Screenshots
 
-![Island Overview](images/house-daylight.png)  
+![Island Overview](imgs/house-daylight.png)  
 *2 Players building a house.*
 
-![Enemies and Multiplayer](imgs/enemy-and-player-night.png)  
+![Enemies and Multiplayer](imgs/enemy_and_player_night.png)  
 *A zombie enemy about to attack a player.*
 
 ![Custom Lighting](imgs/torch.png)  
