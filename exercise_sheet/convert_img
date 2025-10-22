@@ -1,0 +1,7 @@
+#!/bin/sh
+
+for i in "$@"; do
+  if [ ! -f "${i}.esp" ]; then
+    convert "${i}.png" "${i}.esp"
+  fi
+done

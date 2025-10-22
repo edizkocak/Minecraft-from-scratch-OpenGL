@@ -1,0 +1,209 @@
+Client:
+
+- Two threads (main and networking)
+- During the render-loop: The main thread adds messages into the outbox-queue and checks for new
+  messages in the inbox-queue.
+- Once every intervalMs: The networking threads takes all messages from outbox-queue and sends
+  them to the sever. As a reply it receives an array of messages from the server
+  and adds them to the inbox-queue.
+
+Server:
+
+- Similar to client; main and networking thread
+- Once every intervalMs: The networking thread iterates over all client connections:
+     For each client connection: Checks for incoming message array(s), processes all messages in order and
+     generates reply-messages to the calling client and for the other clients. Then send back all messages
+     of the current client connection as one message array.
+- In the future: Could be extended to main thread plus one per connection
+
+Below there are the SERVER and CLIENT API which describe the different message types.
+
+##############
+# SERVER API #
+##############
+
+- Log active player into game
+
+  SvLogin(playerName : str) -> None
+  note: ClLogin(...) is sent back as reply
+
+- Remove active player from game
+
+  SvLogout() -> None
+  note: ClExit() is sent back as reply
+
+- Update active Player
+
+  SvUpdatePlayer(newPos : float[3], rot : float[2], animation : Animation) -> None
+  optional: if newPos is invalid (e.g. inside a block), then ClUpdateAnimated(...) is called
+            with actual player position
+
+- Update HP of AnimatedObj (hit by projectile, fallen onto ground)
+
+  SvUpdateHp(movableObjId : int, hpChange : float) -> None
+  note: a client checks for each Projectile that was added by it if it hits an AnimatedObj
+
+- active player digs a block
+
+  SvDig(oldBlockType : int, pos : int[3]) -> None
+  note: client does directly remove block and update inventory
+
+- active player places a block
+
+  SvPlace(newBlockType : int, pos : int[3]) -> None
+  note: assert oldBlockType = Air
+  note: client does directly place block and update inventory
+
+- Add Projectile
+
+  SvAddProjectile(movableObjId : int, pos : float[3], velocity : float[3]) -> None
+  note: remove one item of MovableObjType from player inventory
+  note: velocity ~ direction
+
+- Projectile: Final position or removal
+
+  SvUpdateProjectile(movableObjId : int, finalPos : float[3]) -> None
+  note: if projectile hits something, then call this method with final position
+        if en enemy is hit, call with IVEC3_INVALID_POS to signal direct removal of projectile
+        -> on other clients: updateProjectile(...) with velocity = 0
+
+##############
+# CLIENT API #
+##############
+
+- add player / login answer
+
+  ClAddPlayer(movableObjId : int, startPos : int[3], intervalMs : int, nextId : int, maxId : int, gameTimeOffset : int, mapSize : int[3])
+  note: called after initial login, then movableObjId is the id of the active player
+        else another player has joined the game
+
+  note: player n (starting at 0) gets the id = (n + 1) * (MAX_INT / (numPlayers + 1))
+  note: player.frozen = true
+
+  note: MovableObj.minId = movableObjId + 1
+  note: MovableObj.nextId = nextId = movableObjId + 1
+  note: MovableObj.maxId = maxId = "id of player n - 1" = (n + 2) * (MAX_INT / (numPlayers + 1)) - 1
+
+  note: server.MovableObj.minId = 0
+  note: server.MovableObj.nextId = 0 * (MAX_INT / (numPlayers + 1))
+  note: server.MovableObj.maxId = 1 * (MAX_INT / (numPlayers + 1)) - 1
+
+  note: client can start the game timer with Timer::begin(gameTimeOffset)
+  note: mapSize in chunks
+
+- Freeze/unfreeze player
+
+  ClFreeze(frozen : bool) -> None
+  note: assert isPlayer(movableObjId)
+  note: a frozen player can't move
+
+- Update inventory
+
+  ClUpdateInventory(blockType : int, change : int)
+
+  note: example: player places a dirt block "updateInventory(<activePlayer>, <Dirt>, -1)"
+        example: player digs a dirt block   "updateInventory(<activePlayer>, <Dirt>, +1)"
+
+- Add MovableObj
+
+  ClAddMovable(movableObjId : int, pos : int[3], movableObjType : int) -> None
+
+- Force/interpolate Player | NPC
+
+  ClUpdateAnimated(movableObjId : int, pos : float[3], rot : float[2], animation : Animation) -> None
+  note: removal of objects:
+         only movableObjId and pos are given with pos == VEC3_INVALID_POS
+  note: interpolate pos between now and now+intervalMs from animatedObj.pos and (received) pos
+  note: update animatedObj sound depending on pos and Animation
+
+- Update HP
+
+  ClUpdateHp(movableObjId : int, hpChange : float) -> None
+
+- Add, finalize or remove projectile
+
+  ClUpdateProjectile(movableObjId : int, pos : float[3], velocity : float[3]) -> None
+
+- Force update Block
+
+  ClUpdateBlock(blockType : int, pos : int[3]) -> None
+
+- Update clouds
+
+  ClUpdateCloud(movableObjId : int, cloudType : int, pos : int[2]) -> None
+  note: adds one cloud that cyclical moves over the sky
+  note: if pos is VEC2_INVALID_POS, then remove cloud
+
+- Toggle thunderstorm
+
+  ClThunderstorm(active : bool) -> None
+
+- Add lightning
+
+  ClLightning(movableObjId : int) -> None
+  note: adds a lightning at cloud with id == movableObjId
+
+- Exit
+
+  ClExit() -> None
+
+
+#########
+# Notes #
+#########
+
+- Animation = animationType : int, offsetMs : int
+
+  offset in ms from animation start
+  TODO: include animationCounter which is incremented on each animation change
+
+- MovableObj := Player | NPC | Projectile
+- AnimatedObj := Player | NPC
+  pos, (view-)dir (can be different from velocity), animation, HP (health points)
+- NPC
+  only created by server
+- Projectile
+  pos, velocity, damage, weight
+  only created by clients
+
+- active Player
+
+  on a client, this is the Player object of the person playing the game
+  passive Players are the other coop-players
+
+- Digging a block
+
+  directly remove block on client side
+  add a SvDig(...)-message for the server into server.queue
+  when the current period is over, the message will be sent to the server
+  on server reply, update blockType with actual blockType (if success=false)
+
+#########
+# TODOs #
+#########
+
+- who detects collision
+
+- minetest:
+
+    - MapNode
+    - MapBlock (16x16x16 MapNodes)
+    - ActiveObject (non-static, moving around)
+      - player, NPCs, falling nodes
+
+- minetest client.hL170
+
+  void handleCommand(NetworkPacket* pkt);
+
+  add-/remove node
+  inventory
+  timeOfDay(time : float)
+  activeObjectRemoveAdd
+  activeObjectMessage
+  move
+  hp
+  playSound
+  stopSound
+  fadeSound
+  localPlayerAnimations
+  playerSpeed

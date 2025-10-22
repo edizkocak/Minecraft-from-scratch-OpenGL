@@ -1,0 +1,11 @@
+    // loop 3d sound
+//     CircularSoundTest::loop();
+//    return EXIT_SUCCESS;
+
+    // play in foreground
+//    SoundTest::startPlayStop();
+//    return EXIT_SUCCESS;
+
+    // play in foreground, make quieter
+//    SoundTest::fadeOut();
+//    return EXIT_SUCCESS;
