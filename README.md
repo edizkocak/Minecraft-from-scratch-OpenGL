@@ -1,29 +1,34 @@
-# The island of two faces
+# The Island of Two Faces
 
-The `render-data` of the client and server can be downloaded here:
+A cooperative multiplayer 3D game implemented entirely **from scratch in C++ and OpenGL**.  
+This was the final project of my game programming and computer graphics internship spanning over 1000 hours. For this project, we received a time limit of only 3 weeks, where we built all core systems ourselves: rendering, physics, server networking, and gameplay. Our team consisted of 4 people.
 
-- [https://cloud.privacy1st.de/s/Fq3RZjdT4nX9D8d]()
+---
 
-The sky sphere takes some time to load, so please be patient until you see the sky and stars.
+## Overview
 
-Weather changes over time:
+In a Minecraft-style game, players explore an island, collect and place blocks, build structures, and defend themselves against enemies.  
+The game supports **up to 4 players** in a multiplayer server.
 
-- sunny, no clouds
-- clouds
-- dark clouds, rain and lightning
+---
 
-And don't forget, to turn on your speakers to enjoy the soundtrack.
+## Screenshots
 
-## Server and Client
+![Island Overview](images/house-daylight.png)  
+*2 Players building a house.*
 
-A server for 3 players at CIP computer `cip3c0` can be started with:
+![Enemies and Multiplayer](imgs/enemy-and-player-night.png)  
+*A zombie enemy about to attack a player.*
 
-```shell
-./applications/server/a5-server -a cip3c0.cip.cs.fau.de -p 2214 -n 3
-```
+![Custom Lighting](imgs/torch.png)  
+*A torch emits light.*
 
-And each client with:
+---
 
-```shell
-./applications/client/a5-client -a cip3c0.cip.cs.fau.de -p 2214 -u SomeUserName
-```
+## Features
+
+- Custom **OpenGL rendering pipeline**: shadows, point lighting, sky sphere, water reflections/refractions  
+- All **3D models designed in Blender**: environment, items, and enemies  
+- **Physics system**: collision detection and response for players, enemies, and projectiles  
+- **Gameplay**: mining, crafting, building, and combat  
+- **Networking**: client-server architecture synchronizing map state, player actions, and animations  
